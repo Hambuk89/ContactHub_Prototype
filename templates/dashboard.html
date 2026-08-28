@@ -1,0 +1,106 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+   <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Dashboard</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+</head>
+<body>
+    <!-- main container parts -->
+    <div class="main-container">
+        <!-- profile section -->
+        <div class="logo-container">
+            <div class="logo-frame">
+                <a href="{{ url_for('login_page') }}" class="logo-link">
+                    <img src="{{ url_for('static', filename='images/Copilot_20260809_130103.png') }}" alt="ContactHub-Logo" class="logo-img">
+                </a>
+            </div>
+
+            <div class="profile-section">
+                <div class="profile-circle-img">
+                    <button class="edit-btn">EDIT</button>
+                </div>
+                <p class="username">Hello, {{ current_user.username }}</p>
+            </div>
+
+            <div class="stats-section">
+                <div class="stat-item">
+                    <p class="stat-title">Total</p>
+                    <p class="stat-value">{{ total_contacts }}</p>
+                </div>
+                <div class="stat-item">
+                    <p class="stat-title">Tagged</p>
+                    <p class="stat-value">{{ tagged_contacts }}</p>
+                </div>
+            </div>
+
+            <div class="menu-section">
+                <button class="menu-btn" id="addContactBtn">ADD CONTACT</button>
+                <button class="menu-btn" id="viewContactBtn">VIEW CONTACT</button>
+                <button class="menu-btn" id="deleteContactBtn">DELETE CONTACT</button>
+                <button class="signout-btn" id="signOutBtn">
+                    SIGN OUT
+                    <img src="{{ url_for('static', filename='images/signout_icon.svg') }}" alt="Sign Out Icon" class="signout-icon">
+                </button>
+            </div>
+        </div>
+
+        <!-- Contact List Section -->
+        <div class="contact-list-container">
+            <div class="dashboard-header">
+                <h2 class="dashboard-title">CONTACT LIST</h2>
+                <div class="search-sort-section">
+                    <div class="search-box">
+                        <input type="text" id="searchInput" placeholder="Search by name" class="search-input" onkeyup="filterContacts()">
+                        <img src="{{ url_for('static', filename='images/search_icon.svg') }}" alt="Search Icon" class="search-icon">
+                    </div>
+                    <div class="sort-box">
+                        <label for="sortSelect">SORT BY</label>
+                        <select id="sortSelect" class="sort-select" onchange="sortContacts()">
+                            <option value="az">Alphabetically A-Z</option>
+                            <option value="za">Alphabetically Z-A</option>
+                            <option value="latest">latest</option>
+                            <option value="oldest">Oldest</option>
+                            <option value="tagged">Tagged</option>
+                        </select>
+                    </div>
+                </div>
+            </div>
+
+            <div class="alphabet-section">
+                <ul class="alphabet-list">
+                    <li onclick="filterByLetter('ALL')">ALL</li>
+                    <li onclick="filterByLetter('#')">#</li>
+                     {% for letter in 'ABCDEFGHIJKLMNOPQRSTUVWXYZ' %}
+                        <li onclick="filterByLetter('{{ letter }}')">{{ letter }}</li>
+                     {% endfor %}
+                </ul>
+            </div>
+
+            <div class="contact-grid" id="contactGrid">
+                {% if contacts|length == 0 %}
+                    <p class="empty-text">
+                        Your contact list is empty. Add your first contact to get started!<br>
+                        <span class="tip-text">Tip: Add contacts to organize your network and tag them for easy search.</span>
+                    </p>
+                {% else %}
+                    {% for contact in contacts %}
+                        <div class="contact-card">
+                            <div class="contact-img"></div>
+                            <div class="contact-info">
+                                <p class="contact-name">{{ contact.name }}</p>
+                                <p class="contact-number">{{ contact.phone }}</p>
+                                <p class="contact-email">{{ contact.email }}</p>
+                            </div>
+                        </div>
+                    {% endfor %}
+                {% endif %}
+            </div>
+        </div>
+    </div>
+    <script src="{{ url_for('static', filename='js/dashboard.js') }}"></script>
+    <script src="{{ url_for('static', filename='js/overlay.js') }}"></script>
+</body>
+</html>
