@@ -1,10 +1,9 @@
 from flask import Flask, flash, render_template, request, redirect, url_for
 from models import db, User, Contact
 from flask_bcrypt import Bcrypt
-from flask_mail import Mail, Message
 from flask_login import LoginManager, login_user, login_required, logout_user, current_user
 from dotenv import load_dotenv
-import os
+import os, string, random
 
 # load environment variables from .env file
 load_dotenv()
@@ -17,26 +16,13 @@ app.config['SECRET_KEY'] = os.getenv('SECRET_KEY')
 app.config['SQLALCHEMY_DATABASE_URI'] = os.getenv('DATABASE_URL', 'sqlite:///contacthub.db')
 app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
 
-# Email Configuration (Based on Gmail)
-app.config['MAIL_SERVER'] = 'smtp.gmail.com'
-app.config['MAIL_PORT'] = 587
-app.config['MAIL_USE_TLS'] = TRUE
-app.config['MAIL_USERNAME'] = os.getenv('MAIL_USERNAME')
-app.config['MAIL_PASSWORD'] = os.getenv('MAIL_PASSWORD')
-
-
 # Database and Bcrypt instances
-mail = Mail(app)
 db.init_app(app)
 bcrypt = Bcrypt(app)
 
 login_manager = LoginManager()
 login_manager.login_view = "login_page"
 login_manager.init_app(app)
-
-@login_manager.user_loader
-def load_user(user_id):
-    return User.query.get(int(user_id))
 
 @login_manager.user_loader
 def load_user(user_id):
@@ -60,9 +46,9 @@ def login_page():
         if user and bcrypt.check_password_hash(user.password, password):
             login_user(user)
             flash('Login successful! You are all set to go! Click here to go to the dashboard.')
-            return redirect(url_for('dashboard_page'))
+            return render_template('login.html')
         else:
-            flash('Incorrect password. Please try again or reset your password.')
+            flash('Incorrect username or password. Please try again.')
             return redirect(url_for('login_page'))
     return render_template('login.html')
 
@@ -94,10 +80,35 @@ def register_page():
 
     return render_template('register.html')
 
+# generate temporary password 
+def generate_temp_password(length=8):
+    chars = string.ascii_letters + string.digits
+    return ''.join(random.choice(chars) for _ in range (length))
 
 @app.route("/forgot_password", methods=['GET', 'POST'])
 def forgot_password_page():
-    
+    if request.method == 'POST':
+        username = request.form['username']
+        email = request.form['email']
+
+        user = User.query.filter_by(username=username, email=email).first()
+        if user:
+            temp_password = generate_temp_password()
+            hashed_pw = bcrypt.generate_password_hash(temp_password).decode('utf-8')
+            user.password = hashed_pw
+            db.session.commit()
+
+            return render_template(
+                'forgot_password.html',
+                temp_password=temp_password,
+                message="Check your temporary password below. After logging in, please update your password to keep your account secure."
+            )
+        else:
+            return render_template(
+                'forgot_password.html',
+                error_message="Username or email not found. Please try again."
+            )
+
     return render_template('forgot_password.html')
 
 @app.route("/dashboard")
@@ -130,7 +141,7 @@ def update_profile():
 @app.route("/contact/add", methods=['POST'])
 @login_required
 def add_contact():
-    contact = contact(
+    contact = Contact(
         name=request.form['name'],
         phone=request.form['phone'],
         email=request.form['email'],
@@ -149,7 +160,7 @@ def add_contact():
 @app.route("/contact/<int:contact_id>/update", methods=['POST'])
 @login_required
 def update_contact(contact_id):
-    contact = Contact.query.get_or404(contact_id)
+    contact = Contact.query.get_or_404(contact_id)
     contact.name = request.form['name']
     contact.phone = request.form['phone']
     contact.email = request.form['email']
