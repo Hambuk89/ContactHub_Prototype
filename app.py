@@ -1,14 +1,14 @@
-from flask import Flask, flash, render_template, request, redirect, url_for
+from flask import Flask, flash, render_template, request, redirect, url_for, jsonify
 from models import db, User, Contact
 from flask_bcrypt import Bcrypt
 from flask_login import LoginManager, login_user, login_required, logout_user, current_user
 from dotenv import load_dotenv
 import os, string, random
 
-# load environment variables from .env file
+# Load Environment Variables From .env File
 load_dotenv()
 
-# new Flask application instance
+# New Flask Application Instance
 app = Flask(__name__)
 
 # app configuration
@@ -16,7 +16,7 @@ app.config['SECRET_KEY'] = os.getenv('SECRET_KEY')
 app.config['SQLALCHEMY_DATABASE_URI'] = os.getenv('DATABASE_URL', 'sqlite:///contacthub.db')
 app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
 
-# Database and Bcrypt instances
+# Database and Bcrypt Instances
 db.init_app(app)
 bcrypt = Bcrypt(app)
 
@@ -34,7 +34,7 @@ with app.app_context():
 
 
 # Route Pages
-# login pages (First page)
+# Login Pages (First page)
 @app.route("/", methods=['GET', 'POST'])
 def login_page():
     if request.method == 'POST':
@@ -49,7 +49,8 @@ def login_page():
             return render_template('login.html')
         else:
             flash('Incorrect username or password. Please try again.')
-            return redirect(url_for('login_page'))
+            return render_template('login.html') 
+        
     return render_template('login.html')
 
 # Register Page
@@ -80,11 +81,12 @@ def register_page():
 
     return render_template('register.html')
 
-# generate temporary password 
+# Generate Temporary Password 
 def generate_temp_password(length=8):
     chars = string.ascii_letters + string.digits
     return ''.join(random.choice(chars) for _ in range (length))
 
+# Forgot Password 
 @app.route("/forgot_password", methods=['GET', 'POST'])
 def forgot_password_page():
     if request.method == 'POST':
@@ -92,6 +94,7 @@ def forgot_password_page():
         email = request.form['email']
 
         user = User.query.filter_by(username=username, email=email).first()
+
         if user:
             temp_password = generate_temp_password()
             hashed_pw = bcrypt.generate_password_hash(temp_password).decode('utf-8')
@@ -111,6 +114,7 @@ def forgot_password_page():
 
     return render_template('forgot_password.html')
 
+# Dashboard
 @app.route("/dashboard")
 @login_required
 def dashboard_page():
@@ -120,13 +124,33 @@ def dashboard_page():
         c.tag_work, c.tag_family, c.tag_friend, c.tag_other
     ])])
 
+    # Prepare contacts data for JSON serialization
+    contacts_json = [
+        {
+            "id": c.id,
+            "name": c.name,
+            "phone": c.phone,
+            "email": c.email,
+            "address": c.address,
+            "created_at": c.created_at.strftime("%Y-%m-%d %H:%M:%S"),
+            "tag_work": c.tag_work,
+            "tag_family": c.tag_family,
+            "tag_friend": c.tag_friend,
+            "tag_other": c.tag_other
+        }
+        for c in contacts
+    ]
+
     return render_template(
         'dashboard.html',
         contacts=contacts,
+        contacts_json=contacts_json,
         total_contacts=total_contacts,
         tagged_contacts=tagged_contacts
     )
 
+
+# Profile Update
 @app.route("/profile/update", methods=['POST'])
 @login_required
 def update_profile():
@@ -134,10 +158,16 @@ def update_profile():
     current_user.phone = request.form['phone']
     current_user.email= request.form['email']
     current_user.address = request.form['address']
+
+    if request.form.get('password'):
+        hashed_pw = bcrypt.generate_password_hash(request.form['password']).decode('utf-8')
+        current_user.password = hashed_pw
+
     db.session.commit()
     flash('Profile updated successfully.')
     return redirect(url_for('dashboard_page'))
 
+# Add Contact
 @app.route("/contact/add", methods=['POST'])
 @login_required
 def add_contact():
@@ -152,27 +182,53 @@ def add_contact():
         tag_other=('other' in request.form),
         user_id=current_user.id
     )
+
     db.session.add(contact)
     db.session.commit()
+
     flash('Contact added successfully.')
     return redirect(url_for('dashboard_page'))
 
+# Contact JSON (for edit overlay)
+@app.route("/contact/<int:contact_id>/json")
+@login_required
+def contact_json(contact_id):
+    contact = Contact.query.get_or_404(contact_id)
+    return jsonify({
+        "id": contact.id,
+        "name": contact.name,
+        "phone": contact.phone,
+        "email": contact.email,
+        "address": contact.address,
+        "tag_work": contact.tag_work,
+        "tag_family": contact.tag_family,
+        "tag_friend": contact.tag_friend,
+        "tag_other": contact.tag_other
+    })
+
+# Update Contact
 @app.route("/contact/<int:contact_id>/update", methods=['POST'])
 @login_required
 def update_contact(contact_id):
     contact = Contact.query.get_or_404(contact_id)
+
     contact.name = request.form['name']
     contact.phone = request.form['phone']
     contact.email = request.form['email']
     contact.address = request.form['address']
-    contact.tag_work = request.form['tag_work']
-    contact.tag_family = request.form['tag_family']
-    contact.tag_friend = request.form['tag_friend']
-    contact.tag_other = request.form['tag_other']
+
+    # Checkbox handling
+    contact.tag_work = 'work' in request.form
+    contact.tag_family = 'family' in request.form
+    contact.tag_friend = 'friend' in request.form
+    contact.tag_other = 'other' in request.form
+
     db.session.commit()
+
     flash('Contact details updated successfully.')
     return redirect(url_for('dashboard_page'))
 
+# Delete Contact
 @app.route("/contact/<int:contact_id>/delete", methods=['POST'])
 @login_required
 def delete_contact(contact_id):
@@ -182,6 +238,21 @@ def delete_contact(contact_id):
     flash('Contact deleted successfully.')
     return redirect(url_for('dashboard_page'))
 
+@app.route("/contacts/delete", methods=["POST"])
+@login_required
+def delete_contacts():
+    contact_ids = request.form.getlist("contact_ids", type=int)
+    contacts_to_delete = Contact.query.filter(
+        Contact.id.in_(contact_ids),
+        Contact.user_id == current_user.id
+    ).all()
+    for contact in contacts_to_delete:
+        db.session.delete(contact)
+    db.session.commit()
+    flash(f"{len(contacts_to_delete)} contacts deleted successfully.")
+    return redirect(url_for("dashboard_page"))
+
+# Sign Out
 @app.route("/signout", methods=['POST'])
 @login_required
 def sign_out():

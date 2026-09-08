@@ -7,19 +7,31 @@
     <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
 </head>
 <body>
+    <!-- flash message -->
+    {% with messages = get_flashed_messages(with_categories=true) %}
+        {% if messages %}
+            <div class="dashboard-flash-messages">
+                {% for category, message in messages %}
+                    <div class="dashboard-flash-message {{ category }}">
+                        {{ message }}
+                    </div>
+                {% endfor %}
+            </div>
+        {% endif %}
+    {% endwith %}
     <!-- main container parts -->
     <div class="page-container">
         <!-- profile section -->
         <div class="profile-container">
             <div class="logo-frame">
-                <a href="{{ url_for('login_page') }}" class="logo-link">
+                <a href="{{ url_for('dashboard_page') }}" class="logo-link">
                     <img src="{{ url_for('static', filename='images/Copilot_20260809_130103.png') }}" alt="ContactHub-Logo" class="logo-img">
                 </a>
             </div>
 
             <div class="profile-circle-img" id="profileBtn">
                 <span class="profile-initials">
-                    {{ current_user.username[0]|upper}}{{current_user.username.split(' ')[-1][0]|upper }}
+                    {{ current_user.username.strip().split()[0][0]|upper }}
                 </span>   
             </div>
             
@@ -33,9 +45,9 @@
             </div>
 
             <div class="menu-section">
+                <button class="menu-btn" id="viewProfileBtn">VIEW PROFILE</button>
                 <button class="menu-btn" id="addContactBtn">ADD CONTACT</button>
-                <button class="menu-btn" id="viewContactBtn">VIEW CONTACT</button>
-                <button class="menu-btn" id="deleteContactBtn">DELETE CONTACT</button>
+                <button class="menu-btn" id="manageContactsBtn">MANAGE CONTACTS</button>
                 <button class="signout-btn" id="signOutBtn">
                     SIGN OUT
                     <span class="signout-icon"></span>
@@ -75,29 +87,36 @@
                     </ul>
                 </div>
 
-                <div class="contact-grid" id="contactGrid">
+                <script>
+                    window.initialContacts = {{ contacts_json | tojson | safe }};
+                </script>
+
+                <div class="contact-area">
+                    <div class="contact-grid" id="contactGrid"></div>
+
                     {% if contacts|length == 0 %}
-                        <p class="empty-text">
-                            Your contact list is empty. Add your first contact to get started!<br>
-                            <span class="tip-text">Tip: Add contacts to organize your network and tag them for easy search.</span>
-                        </p>
-                    {% else %}
-                        {% for contact in contacts %}
-                            <div class="contact-card">
-                                <div class="contact-img"></div>
-                                <div class="contact-info">
-                                    <p class="contact-name">{{ contact.name }}</p>
-                                    <p class="contact-number">{{ contact.phone }}</p>
-                                    <p class="contact-email">{{ contact.email }}</p>
-                                </div>
-                            </div>
-                        {% endfor %}
+                        <div class="empty-text">
+                            Your contact list is empty. Add your first contact to get started!
+                            <br>
+                            <span class="tip-text">
+                                Tip: Add contacts to organize your network and tag them for easy search.
+                            </span>
+                        </div>
                     {% endif %}
                 </div>
             </div>
         </div>
     </div>
     <script src="{{ url_for('static', filename='js/dashboard.js') }}"></script>
+    <script src="{{ url_for('static', filename='js/dashboard_overlay.js') }}"></script>
     <script src="{{ url_for('static', filename='js/overlay.js') }}"></script>
+    <script>
+        const currentUser = {
+            username: "{{ current_user.username }}",
+            phone: "{{ current_user.phone }}",
+            email: "{{ current_user.email }}",
+            address: "{{ current_user.address }}"
+        };
+    </script>
 </body>
 </html>
