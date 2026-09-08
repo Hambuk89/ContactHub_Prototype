@@ -8,14 +8,12 @@
 </head>
 <body>
     <!-- flash message -->
-    {% with messages = get_flashed_messages(with_categories=true) %}
+    {% with messages = get_flashed_messages() %}
         {% if messages %}
-            <div class="dashboard-flash-messages">
-                {% for category, message in messages %}
-                    <div class="dashboard-flash-message {{ category }}">
-                        {{ message }}
-                    </div>
-                {% endfor %}
+            <div id="dashboard-message-overlay" class="dashboard-message-overlay">
+                <div class="dashboard-message-box">
+                    {{ messages[-1] }}
+                </div>
             </div>
         {% endif %}
     {% endwith %}

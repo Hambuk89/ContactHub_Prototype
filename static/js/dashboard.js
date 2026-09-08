@@ -108,8 +108,38 @@ function initDashboard() {
         manageBtn.addEventListener('click', () => {
             manageMode = true;
             renderContacts(filteredContacts);
+
+            showDashboardMessage(
+                'Select the contacts you want to delete'
+            );
         });
     }
+}
+
+/* Message popup (Manage Contacts) */
+function showDashboardMessage(message) {
+    const existingOverlay = document.getElementById(
+        'dashboard-message-overlay'
+    );
+
+    if (existingOverlay) {
+        existingOverlay.remove();
+    }
+
+    const overlay = document.createElement('div');
+    overlay.id = 'dashboard-message-overlay';
+    overlay.className = 'dashboard-message-overlay';
+
+    const messageBox = document.createElement('div');
+    messageBox.className = 'dashboard-message-box';
+    messageBox.textContent = message;
+
+    overlay.appendChild(messageBox);
+    document.body.appendChild(overlay);
+
+    overlay.addEventListener('click', () => {
+        overlay.remove();
+    });
 }
 
 /* Toggle Selection */
@@ -125,7 +155,7 @@ function toggleCardSelection(card) {
 
 /* Delete All Button Implementation */
 function updateDeleteAllButton(card) {
-    if (selectedCards.size > 1) {
+    if (selectedCards.size > 0) {
         if (!deleteAllBtn) {
             deleteAllBtn = document.createElement('button');
             deleteAllBtn.className = 'delete-all-btn';
@@ -230,7 +260,26 @@ function filterByLetter(letter) {
     renderContacts(filteredContacts);
 }
 
+/* Dashboard Message Boxes */
+function setupDashboardMessage() {
+    const messageOverlay = document.getElementById(
+        'dashboard-message-overlay'
+    );
 
+    if (!messageOverlay) {
+        return;
+    }
+
+    messageOverlay.addEventListener('click', () => {
+        messageOverlay.classList.add('is-closing');
+
+        setTimeout(() => {
+            messageOverlay.remove();
+        }, 200);
+    });
+}
+
+document.addEventListener('DOMContentLoaded', setupDashboardMessage);
 
 
 document.addEventListener("DOMContentLoaded", initDashboard);
