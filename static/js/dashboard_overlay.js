@@ -92,7 +92,7 @@ function openContactDetailOverlay(card) {
 
     const footer = `
         <button class="dashboard-btn dashboard-btn-primary" onclick="fetchContactAndEdit(${id})">EDIT</button>
-        <button class="dashboard-btn dashboard-btn-danger" onclick="openDeleteContactOverlay(${id})">DELETE</button>
+        <button class="dashboard-btn dashboard-btn-danger" onclick="openDeleteContactOverlay(${id}, '${name}')">DELETE</button>
     `;
 
     createDashboardOverlay("CONTACT DETAIL", content, footer, "dashboard-overlay-box", true, name);
@@ -128,7 +128,7 @@ function openEditContactOverlay(contact) {
         <button class="dashboard-btn dashboard-btn-cancel dashboard-overlay-close">CANCEL</button>
     `;
 
-    createDashboardOverlay("EDIT CONTACT", content, footer);
+    createDashboardOverlay("EDIT CONTACT", content, footer, "dashboard-overlay-box", true, contact.name);
 }
 
 /* ADD CONTACT */
@@ -202,7 +202,7 @@ function openProfileEditOverlay() {
 
 
 /* DELETE CONTACT CONFIRM */
-function openDeleteContactOverlay(contactId) {
+function openDeleteContactOverlay(contactId, contactName) {
     const content = `
         <p>Are you sure you want to delete this contact?</p>
     `;
@@ -214,7 +214,7 @@ function openDeleteContactOverlay(contactId) {
         <button class="dashboard-btn dashboard-btn-cancel dashboard-overlay-close">CANCEL</button>
     `;
 
-    createDashboardOverlay("DELETE CONTACT", content, footer);
+    createDashboardOverlay("DELETE CONTACT", content, footer, "dashboard-overlay-box", true, contactName);
 }
 
 /* DELETE SELECTED CONTACTS CONFIRM */
